@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Objects Recogniser</title>
+</head>
+<body>
+    <video id="video"></video>
+    <canvas id="canvas"></canvas>
+    <script src="system.js" ></script>
+    <script>
+        System.config({
+            map: {
+                socketIO: 'socket.io.js',
+                socketStream: 'socket.io-stream.js',
+                traceur: 'traceur.js'
+            },
+            packages: {
+                app: {
+                    format: 'esm',
+                    defaultExtension: 'js'
+                }
+            }
+        });
+        System.import('app/index')
+                .then(null, console.error.bind(console));
+    </script>
+</body>
+</html>

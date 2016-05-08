@@ -1,0 +1,19 @@
+{
+  "name": "node-objects-recognition",
+  "version": "0.0.1",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "Maxim Tolochko",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.13.4",
+    "opencv": "^5.0.0",
+    "socket.io": "^1.4.6",
+    "socket.io-client": "^1.4.6",
+    "socket.io-stream": "^0.9.0",
+    "systemjs": "^0.19.27",
+    "traceur": "0.0.108"
+  }
+}
