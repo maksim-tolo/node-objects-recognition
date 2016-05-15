@@ -15,46 +15,62 @@ app.use('/system.js', express.static(`${__dirname}/node_modules/systemjs/dist/sy
 app.use('/traceur.js', express.static(`${__dirname}/node_modules/traceur/bin/traceur.js`));
 
 class SocketIoServer extends SocketIO {
-    constructor(server, port = 3000) {
-        super(server);
+  constructor(server, port = 3000) {
+    super(server);
 
-        this.on('connection', (socket) => {
-            SocketIoServer.log(`User ${socket.id} connected`);
+    this.on('connection', (socket) => {
+      SocketIoServer.log(`User ${socket.id} connected`);
 
-            socketStream(socket).on(SocketIoServer.API.FACE_RECOGNITION, (stream) => {
-                let imageDataStream = new OpenCV.ImageDataStream();
+      this.processImage(socket, SocketIoServer.CASCADES_PATHS.FACE_RECOGNITION, SocketIoServer.API.FACE_RECOGNITION);
+      this.processImage(socket, SocketIoServer.CASCADES_PATHS.PALM_RECOGNITION, SocketIoServer.API.PALM_RECOGNITION);
 
-                imageDataStream.once('load', (image) =>
-                    image.detectObject(OpenCV.FACE_CASCADE, {}, (err, faces) => {
-                        if (err) {
-                            // TODO: notify clients about error
-                            SocketIoServer.log(err);
-                        } else {
-                            socket.emit(SocketIoServer.API.FACE_RECOGNITION, faces);
-                        }
-                }));
+      socket.on('disconnect', () => {
+        SocketIoServer.log(`User ${socket.id} disconnected`);
 
-                stream.pipe(imageDataStream);
-            });
+        socket.removeAllListeners();
+      });
+    });
 
-            socket.on('disconnect', () => {
-                SocketIoServer.log(`User ${socket.id} disconnected`);
-                socket.removeAllListeners();
-            });
-        });
+    server.listen(port, () => SocketIoServer.log(`App listening on port ${port}`));
+  }
 
-        server.listen(port, () => SocketIoServer.log(`App listening on port ${port}`));
+  static get API() {
+    return {
+      FACE_RECOGNITION: 'face-recognition',
+      PALM_RECOGNITION: 'palm-recognition',
+      RECOGNITION_ERROR: 'recognition-error'
     }
+  }
 
-    static get API() {
-        return {
-            FACE_RECOGNITION: 'face-recognition'
-        }
+  static get CASCADES_PATHS() {
+    return {
+      FACE_RECOGNITION: OpenCV.FACE_CASCADE,
+      PALM_RECOGNITION: 'cascades/palm.xml'
     }
+  }
 
-    static log(message) {
-        console.log(message);
-    }
+  static log(message) {
+    console.log(message);
+  }
+
+  processImage(socket, pathToCascade, apiName) {
+    socketStream(socket).on(apiName, (stream) => {
+      let imageDataStream = new OpenCV.ImageDataStream();
+
+      imageDataStream.once('load', (image) =>
+        image.detectObject(pathToCascade, {}, (err, objects) => {
+          if (err) {
+            SocketIoServer.log(err);
+
+            socket.emit(SocketIoServer.API.RECOGNITION_ERROR, err);
+          } else {
+            socket.emit(apiName, objects);
+          }
+        }));
+
+      stream.pipe(imageDataStream);
+    });
+  }
 }
 
 new SocketIoServer(http.createServer(app), PORT);
